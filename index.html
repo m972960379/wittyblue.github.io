@@ -176,7 +176,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-07-01 13:59:41" itemprop="dateModified" datetime="2020-07-01T13:59:41+08:00">2020-07-01</time>
+                <time title="修改时间：2020-07-01 21:32:22" itemprop="dateModified" datetime="2020-07-01T21:32:22+08:00">2020-07-01</time>
               </span>
 
           
@@ -217,7 +217,65 @@
 <h4 id="延迟同步"><a href="#延迟同步" class="headerlink" title="延迟同步"></a>延迟同步</h4><p>在服务器侧，维护一个抽象设备模型，用于模拟客户端GPU所有的状态（包括光照，视角，转换矩阵等，个人认为这里的状态表述不明确，可以理解为GPU 常量缓冲区所存的数据），服务器侧检查状态值，只有被修改的数据将被传输到客户端以保证同步。</p>
 <h2 id="实验及分析"><a href="#实验及分析" class="headerlink" title="实验及分析"></a>实验及分析</h2><p>这里就不枚举实验了，直接上结论。<br>由于本系统的渲染过程不需要在服务器端运行，因此服务器端可同时服务更多的客户端，此外，由于对需要传输的数据进行了压缩和缓存，因此大幅地减少了带宽。</p>
 <p>以下是个人见解：<strong>本系统虽然有效地降低了带宽传输，但是由于游戏的主要部分“渲染”被放到了本地，这导致一部分在shader中需要进行复杂运算的游戏并不适用于本系统。此外，随着带宽的不断提高，服务器端压缩数据的过程便成为瓶颈</strong></p>
-<h1 id="论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload"><a href="#论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload" class="headerlink" title="论文2： Kahawai: High-Quality Mobile Gaming Using GPU Offload"></a>论文2： <a href="https://dl.acm.org/doi/10.1145/2594368.2601482" target="_blank" rel="noopener">Kahawai: High-Quality Mobile Gaming Using GPU Offload</a></h1>
+<h1 id="论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload"><a href="#论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload" class="headerlink" title="论文2： Kahawai: High-Quality Mobile Gaming Using GPU Offload"></a>论文2： <a href="https://dl.acm.org/doi/10.1145/2594368.2601482" target="_blank" rel="noopener">Kahawai: High-Quality Mobile Gaming Using GPU Offload</a></h1><h2 id="论文要解决的问题-1"><a href="#论文要解决的问题-1" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h2><p>通过移动客户端和服务器端协同渲染以减少传输带宽和移动客户端能耗</p>
+<h2 id="系统架构-1"><a href="#系统架构-1" class="headerlink" title="系统架构"></a>系统架构</h2><p>Kahawai实现了两种协同渲染技术，分别是delta encoding和client-side I-frame rendering</p>
+<h3 id="delta-encoding"><a href="#delta-encoding" class="headerlink" title="delta encoding"></a>delta encoding</h3><p>移动客户端渲染低细节帧，服务器端分别渲染低细节帧和高细节帧，并将其差值通过H.264编码传输至移动客户端。</p>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/DeltaArch.png" alt="delta encoding Architecture"></p>
+<h3 id="client-side-I-frame-rendering"><a href="#client-side-I-frame-rendering" class="headerlink" title="client-side I-frame rendering"></a>client-side I-frame rendering</h3><p>移动客户端渲染高分辨率的I帧；服务器端渲染所有帧，在进行H.264编码后丢弃所有的I帧，转换为placeholder，并传输至客户端；客户端接收到仅包含P帧的输出后，将I帧插入进去，并进行H.264解码得到最终的输出。</p>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/IFrameArch.png" alt="client-side I-frame rendering Architecture"></p>
+<h2 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h2><h3 id="delta-encoding-1"><a href="#delta-encoding-1" class="headerlink" title="delta encoding"></a>delta encoding</h3><p>由于具有不同细节等级的输出具有相似的信息，因此编码高质量和低质量版本的帧的差值比编码高质量帧所需要的bit更少。虽然在某些情况下会出现反例，但大多数都符合这个情况。</p>
+<p>此外，delta encoding具有以下两种挑战：</p>
+<ol>
+<li>差值的压缩导致在最终恢复图像时产生黑点<br>&emsp;这是由于高细节帧的像素和低细节帧的像素之间的差值可以是正的也可以是负的，需要额外的符号位，因此为了简化，采用模运算作为一个简单的解决方案。下图是原文中的一个例子。</li>
+</ol>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eg1.png" alt="example1"></p>
+<p>&emsp;本文通过如下公式(1)将值转换为正值，并通过式(2)在客户端进行恢复。</p>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq1.png" alt="equation1"><br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq2.png" alt="equation2"></p>
+<ol start="2">
+<li>被编码的差值无法精确表示高细节帧和低细节帧的差异<br>&emsp;其主要原因是有损压缩，压缩产生的误差与高清晰度和低清晰度帧的相似程度成反比。如果高清晰度和低清晰度的帧之间差距较大，相比于直接传输H.264编码的高细节帧需要更高的带宽，并会产生更大的误差。比如，下面两个例子：</li>
+</ol>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/fig4.png" alt="figure4"><br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/fig5.png" alt="figure5"></p>
+<p>其中图5的例子的差值相比于高清晰度帧来说更难压缩。</p>
+<h3 id="Client-side-I-frame-rendering"><a href="#Client-side-I-frame-rendering" class="headerlink" title="Client-side I-frame rendering"></a>Client-side I-frame rendering</h3><p>移动客户端能够渲染的I帧帧率越高，服务器端传输所需的带宽越低。</p>
+<p>在传统的H.264中如果I帧越多，由于I帧所含的信息量较高，因此所需的带宽越高。但是在Client-side I-frame rendering就不会存在这种问题，这是由于I帧在客户端渲染，并不会被服务器端传输。</p>
+<h2 id="Kahawai实现"><a href="#Kahawai实现" class="headerlink" title="Kahawai实现"></a>Kahawai实现</h2><p>基于开源游戏引擎idTech4和闭源游戏街霸4分别实现了该系统。</p>
+<p>该系统的实现主要存在以下3个挑战：</p>
+<ol>
+<li>支持确定性的图形输出；</li>
+<li>输入处理</li>
+<li>针对两种协同渲染技术实现编解码支持</li>
+</ol>
+<h3 id="确定性图形输出"><a href="#确定性图形输出" class="headerlink" title="确定性图形输出"></a>确定性图形输出</h3><p>对于delta encoding，客户端的低分辨率输出必须与服务器端的低分辨率输出相匹配。<br>对于Client-side I-frame rendering，客户端的I帧必须与服务器端的I帧相匹配。</p>
+<p>本文通过服务器端的游戏实例重播移动客户端的输入来达到输出的匹配。但由于在底层实现重播会产生较高的开销，这会导致用户体验变差。另一方面，将重播与游戏的内部逻辑纠缠在一起是不切实际的。</p>
+<p>Kahawai采取了一种折中的方案，即kahawai不需要完全重播所有的游戏执行，只要产生相同的画面即可。比如，服务器端的渲染不需要产生于客户端相同的文件写入或线程调度。</p>
+<p>渲染线程的代码如下：<br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/code1.png" alt="code1"></p>
+<p>其中Frame()用于更新游戏状态（如光照，视角，转换矩阵等），UpdateScreen用于渲染并输出至屏幕。</p>
+<p>有三种不确定性因素会影响idTech引擎的渲染线程的输出：</p>
+<ol>
+<li>系统时间：Kahawai通过拦截渲染中的<em>GetSystemTime</em>调用以确保重播执行时使用相同的时间值。</li>
+<li>伪随机数生成器：正确的重播键盘和鼠标输入便可以使得伪随机数生成器的是确定的。</li>
+<li>游戏音乐：有些游戏的光照等依照于音乐的响度，Kahawai将音乐播放时对应的系统时间记录下来，依照该系统时间进行渲染。</li>
+</ol>
+<p>当服务器连接中断时，客户端将继续采取低分辨率的渲染继续执行，并执行以下步骤:</p>
+<ol>
+<li>游戏继续执行直到游戏被保存</li>
+<li>暂停执行</li>
+<li>将当前状态发送至服务器端</li>
+<li>当服务器确定已经完成恢复游戏状态后继续执行。</li>
+</ol>
+<h3 id="输入处理"><a href="#输入处理" class="headerlink" title="输入处理"></a>输入处理</h3><p>挑战：代码中，当<em>Frame</em>和<em>UpdateScreen</em>处理第N帧时，系统在缓存第N+1帧的事件。为保证服务器端和客户端同步，Kahawai必须确保当客户端再处理第N帧的输入时，服务器端页必须处理第N帧的输入。为保证这一点，客户端需要将渲染线程的事件戳输入和适当的帧号发送至服务器端，当接收到下一帧的输入之前，服务器将暂停。</p>
+<h3 id="pipeline的总结"><a href="#pipeline的总结" class="headerlink" title="pipeline的总结"></a>pipeline的总结</h3><p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/pipeline.png" alt="pipeline"></p>
+<p>图中不同的符号意思如下</p>
+<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/sign.png" alt="sign"></p>
+<h3 id="编解码支持"><a href="#编解码支持" class="headerlink" title="编解码支持"></a>编解码支持</h3><p>对于client-side I-frame，本文使用x264在可预测的间隔生成I帧<br>，然后将编码视频中的I帧丢弃，将被压缩的P帧和placeholder传输至移动客户端。在移动客户端，使用帧捕捉来确定提取被渲染的I帧，并将其插入至视频流中，最终通过ffmpeg进行解码。</p>
+<h2 id="实验及分析-1"><a href="#实验及分析-1" class="headerlink" title="实验及分析"></a>实验及分析</h2><p>直接上结论：</p>
+<ol>
+<li>本文实现的两种系统在用户体验方面与thin-client策略类似；</li>
+<li>在相同的画面质量下，本文实现的两种系统所需的带宽更低，但随着画面质量的增加，本文实现系统与thin-client的差距会减小，这是由于delta encoding的细节变多</li>
+<li>Kahawai部署在在局域网或附近的CDN的服务器中性能最好</li>
+</ol>
+<p>以下是个人见解：<strong>delta encoding由于高清晰度和低清晰度帧的差值较大时表现不佳，因此该方法不能轻松适配于全部游戏。此外，该系统没有考虑负载均衡，这使得系统具有更进一步优化的空间。</strong></p>
+
       
     </div>
 
