@@ -145,6 +145,147 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Mr. Witty Blue">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mr. Witty Blue">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/" class="post-title-link" itemprop="url">【文献阅读07】Rendering Elimination:Early Discard of Redundant Tiles in the Graphics Pipeline</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-20 20:28:19" itemprop="dateCreated datePublished" datetime="2020-07-20T20:28:19+08:00">2020-07-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-07-23 16:54:40" itemprop="dateModified" datetime="2020-07-23T16:54:40+08:00">2020-07-23</time>
+              </span>
+
+          
+            <span id="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/" class="post-meta-item leancloud_visitors" data-flag-title="【文献阅读07】Rendering Elimination:Early Discard of Redundant Tiles in the Graphics Pipeline" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="原文链接"><a href="#原文链接" class="headerlink" title="原文链接"></a>原文链接</h1><p><a href="https://ieeexplore.ieee.org/document/8675248" target="_blank" rel="noopener">Rendering Elimination: Early Discard of Redundant Tiles in the Graphics Pipeline</a></p>
+<h1 id="论文要解决的问题"><a href="#论文要解决的问题" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h1><p>由于帧与帧间的连续性，连续两帧的同一区域有可能相同，因此会产生大量的冗余计算，本文将尝试减少这种冗余计算，以提高TBR GPU的渲染效率。<br>如下图是一组安卓游戏的两个连续帧之间平均相同的tile所占的百分比，以此可以看出，在传统的pipeline中连续帧之间存在大量的冗余计算。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/SameTile.png" alt="Percentage of tiles producing the same color"></p>
+<h1 id="传统Tile-Based架构"><a href="#传统Tile-Based架构" class="headerlink" title="传统Tile-Based架构"></a>传统Tile-Based架构</h1><p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/BaselineArch.png" alt="Assumed baseline architecture"></p>
+<p>Command Processor：用于解析Drawcall和确定向pipeline提交的顶点数据的格式；<br>Vertex Fetcher：创建顶点的输入流（包括顶点的坐标和颜色等信息）；<br>Vertex Processor：用于执行Vertex Shader；<br>Primitive Assembly：将顶点分组成三角形或其他原语，并执行裁剪（clipping）和剔除（culling）技术；<br>Polygon List Builder：将图元信息存储至Parameter Buffer中，这些信息以一种利用局部性并提高Raster性能的格式存储。该单元也决定每一个图元驻留在哪些tile中；<br>Tile Scheduler：负责获取给定tile的图元数据，并将其发送至Raster Pipeline；<br>Rasterizer：将三角形的顶点信息进行插值运算成片元（光栅化）；<br>Early Depth Test：用于丢弃被先前片元遮挡的片元以使其不会被片元着色；<br>Fragment Processor：执行fragment shader；<br>Blending Unit：用于混合先前计算的颜色（用于半透明物体），并将最终结果放到Color Buffer中；<br>当一个tile的所有图元被计算完毕后，Color Buffer的数据将被刷到内存的Frame Buffer中，并执行下一个tile的Raster Pipeline；</p>
+<h1 id="本文所提的优化方式-Rendering-Elimination"><a href="#本文所提的优化方式-Rendering-Elimination" class="headerlink" title="本文所提的优化方式 Rendering Elimination"></a>本文所提的优化方式 Rendering Elimination</h1><h2 id="整体框架"><a href="#整体框架" class="headerlink" title="整体框架"></a>整体框架</h2><p>首先可以确定的是，如果一个tile与上一帧的tile的输入包含相同的场景常量和所有覆盖该tile的图元的信息，则这一个tile的最终颜色将与上一个tile的最终颜色相同，因此可以绕过这个tile的整个Raster Pipeline。</p>
+<p>但由于这一数据所占的空间很大，因此读取起来比较低效，因此通过对一个tile进行签名的方式进行对签名进行存储至Signature Buffer中。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/RenderingElimination.png" alt="Rendering Elimination"></p>
+<p>如上图，Signature Unit计算一个tile的签名，并将其存放在Signature Buffer中。与此同时，Polygon List Builder将图元数据存放在Parameter Buffer。当tile被调度到Raster Pipeline时，将检查该tile的签名是否与上一帧的签名进行对比，如果相同，则跳过Raster Pipeline，并不更新Frame Buffer。</p>
+<h2 id="实现需求"><a href="#实现需求" class="headerlink" title="实现需求"></a>实现需求</h2><p>由于每一个图元都有可能覆盖任何一个tile。这导致只有所有几何数据都被处理完才能知道这个tile的完整输入，以计算签名。这需要在计算签名时重新将这个tile的数据从Parameter Buffer中读出并进行计算，这是十分低效的。因此，本文提出一种，增量的签名计算方式。无论图元以什么顺序，发送至Signature Unit，该单元将之前的签名与当前场景常量或原语的顶点数据通过如下算法进行计算，并将其重新写到Signature Buffer中。只要最终的tile相同，则该签名值便相同。由于签名的计算和Geometry Pipeline阶段相互重叠，因此可以节省大量的时间。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/alg1.png" alt="Algorithm 1 Incremental CRC Computation"></p>
+<p>此外，本文做了大量实验，没有发现一例hashing冲突的结果。</p>
+<h2 id="Tabled-based-CRC32-Computation"><a href="#Tabled-based-CRC32-Computation" class="headerlink" title="Tabled-based CRC32 Computation"></a>Tabled-based CRC32 Computation</h2><p>由于计算CRC32需要花费较长的时间，因此为加速这一过程，可以所有可能输入对应的预计算结果存入Look-up Table中，然而如果消息B的长度为n，则需要2<sup>n</sup>。因此将输入的消息B划分为B<sub>1</sub>…B<sub>k</sub>k个一字节的块，每个块对应一个LUT，在减少存储的同时，提高了计算效率。</p>
+<p>其中第一个块的LUT为B<sub>1</sub>后面跟k-1个字节的0的输入对应的CRC32，第二个块的LUT为B<sub>2</sub>后面跟k-2个字节的0的输入对应的CRC32，以此类推。消息B对应的CRC32为这几个LUT中的结果的异或。</p>
+<h2 id="Tile输入字节流的结构"><a href="#Tile输入字节流的结构" class="headerlink" title="Tile输入字节流的结构"></a>Tile输入字节流的结构</h2><p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/InputMessage.png" alt="Input Massage"></p>
+<p>如上图所示，若需要两个Drawcalls:Drawcall F(fill,C)和Drawcall S(stripes,A,B)时，其结构如图下方tile的输入字节流结构。</p>
+<h2 id="Signature-Unit-SU-Architecture"><a href="#Signature-Unit-SU-Architecture" class="headerlink" title="Signature Unit(SU) Architecture"></a>Signature Unit(SU) Architecture</h2><p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/SignatureUnit.png" alt="Signature Unit"></p>
+<p>当SU接收到一个新的数据块时，需要计算它的CRC并通过增量的方式更新所有该数据块覆盖的tile的CRC。</p>
+<p>对于顶点信息：</p>
+<ol>
+<li>SU使用Compute CRC Unit计算该图元所有的顶点信息的签名，结果被存在Primitive CRC Register中。</li>
+<li>由于顶点信息的属性数量是可变的，以此将该数据块的长度存在Shift Amount P Register中。</li>
+<li>利用Polygon List Builder将所有该图元覆盖的tile的id存在OT Queue中。</li>
+<li>在计算完该图元的签名后，Signature Unit遍历所有OT Queue的Tile id，并从Signature Buffer中读取对应id的CRC签名，将其发送至Accumulate CRC unit中，此外图元消息的长度也被发往该单元，以此计算算法1中的CRC<sub>Temporary</sub>。</li>
+</ol>
+<p>对于常量信息：<br>与顶点处理信息方式类似，但签名需存在Constant CRC Register中，长度需存在Shift Amount C Register中。</p>
+<p>由于相同Drawcall的多个图元可能会覆盖相同的tile，但对应的场景常量每个tile中只能被考虑以此。<br>因此本文使用位图的方式以解决该问题。该位图的长度与tile的数量相等。当位图中的一个位置被设置，则说明对应tile的场景常量签名已经被计算过。当GPU处理下一个Drawcall时，位图需要被清空。<br>在遍历OT Queue时，首先检查该tile的对应位是否被设置，若被设置，只需要通过Primitive CRC进行更新CRC；否则，设置该位，并更新两次CRC，第一次利用Constanta CRC进行更新，第二次利用Primitive CRC进行更新。</p>
+<h2 id="Compute-CRC-和-Accumulate-CRC-Unit的结构"><a href="#Compute-CRC-和-Accumulate-CRC-Unit的结构" class="headerlink" title="Compute CRC 和 Accumulate CRC Unit的结构"></a>Compute CRC 和 Accumulate CRC Unit的结构</h2><h3 id="Compute-CRC-Unit"><a href="#Compute-CRC-Unit" class="headerlink" title="Compute CRC Unit"></a>Compute CRC Unit</h3><p>用于实现算法1循环中的前两步。</p>
+<p>由于每个数据块的长度不固定，因此将其拆分为64bit的固定长度，并利用算法2计算CRC。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/alg2.png" alt="Algorithm 2 Compute CRC Unit"><br><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/alg2diagram.png" alt="Compute CRC Unit Block diagram"></p>
+<p>其中CRC<sub>out</sub>存入Primitive CRC或Constant CRC中，ShiftAmount存入Shift Amount P或Shift Amount C中。</p>
+<h3 id="Accumulate-CRC-Unit"><a href="#Accumulate-CRC-Unit" class="headerlink" title="Accumulate CRC Unit"></a>Accumulate CRC Unit</h3><p>用于实现算法1循环中的第3步</p>
+<p>由于数据块的长度不固定，左移的量也不固定，因此需要采用增量的方法计算CRC，如算法3所示。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/alg3.png" alt="Algorithm 3 Accumulate CRC Unit"><br><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/alg3diagram.png" alt="Accumulate CRC Unit Block diagram"></p>
+<h3 id="Sign-subunit"><a href="#Sign-subunit" class="headerlink" title="Sign subunit"></a>Sign subunit</h3><p>Sign subunit对64bit的字块使用如<em>Tabled-based CRC32 Computation</em>小节所述的方法，每一个字节对应一个LUT，因此只需要8个LUT即可，其输出结果为8个LUT结果的异或。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/SignSubunit.png" alt="Sign subunit"></p>
+<h3 id="Shift-subunit"><a href="#Shift-subunit" class="headerlink" title="Shift subunit"></a>Shift subunit</h3><p>与Sign Subunit结构类似，由于CRC32为32位，而且左移只需要在后面补0即可，因此实际计算的CRC<sub>Accum</sub>只与这32位有关。</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/ShiftSubunit.png" alt="Shift subunit"></p>
+<h1 id="评估方法"><a href="#评估方法" class="headerlink" title="评估方法"></a>评估方法</h1><p>GPU模拟框架：Teapot</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/Teapot.png" alt="Teapot"></p>
+<p>能耗计算模型：McPAT</p>
+<p>Baseline GPU：ARM Mali-450 GPU</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/GPUSimParameters.png" alt="GPU Simulation Parameters"></p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/exp.png" alt="exp1"></p>
+<p>benchmark分为三类：css到top为静态相机的benchmark，mst为高动态相机的benchmark，abi到tib为部分为静态相机部分为高动态相机。<br>注意本文所提方法只能去除颜色和输入都相同的部分，即图15a中黑色的部分。</p>
+<h2 id="RE与Fragment-Memoization和Transaction-Elimination的对比"><a href="#RE与Fragment-Memoization和Transaction-Elimination的对比" class="headerlink" title="RE与Fragment Memoization和Transaction Elimination的对比"></a>RE与Fragment Memoization和Transaction Elimination的对比</h2><p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/REvsFMvsTE.png" alt="Transaction Elimination, Fragment Memoization or Rendering Elimination"></p>
+<p>上图为三种结构的对比，可以看出RE可以根据drawcall的输入绕过整个Raster Pipeline，FM可以根据shader的输入绕过Fragment sShader，TE可以根据Color Buffer是否相同绕过写Frame Buffer的过程。</p>
+<p>其中，值得注意的是 Fragment Memoization需要将shader输入的签名和最终输出的颜色缓存下来，然而由于最终输出的颜色所需额内存过大。因此直接存储一帧的输出颜色是不现实的，因此该方法使用了一种同时渲染两个连续帧的架构PFR，该架构可以保证同时渲染两个连续帧的相同块，以便于对比。然而，这只能去除同时渲染的帧的冗余，不能去除不同时渲染的连续帧的冗余。</p>
+<p>RE与PFR-aided Fragment Memoization的对比试验如下：</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/exp2.png" alt="exp2"></p>
+<p>需要注意的是hop的benchmark，它渲染屏幕的大部分只有少数重复的fragment，而且这些fragment大部分都是完全黑的（可能考虑tile颜色相同时，有可能输入可能不同，RE只要输入有一点不同就要重新渲染，而FM只要颜色相同就不需要重新渲染。）</p>
+<p>RE与Transaction Elimination的对比试验如下：</p>
+<p><img src="/2020/07/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB07/exp3.png" alt="exp3"></p>
+<p>RE可以完全跳过raster pipeline 这可以节省大量的执行时间，而TE只能跳过写入Frame Buffer的执行时间，因此只要存在重复输入的tile，RE基本上优于TE。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>RE相比于baseline gpu能平均提升1.74倍的运算性能，并可以在GPU和主存上的能耗分别减少38%和48%。</p>
+<p>以下是个人见解：该方法很好地用硬件去除了帧间计算的冗余，可以考虑利用该方法或者TE、FM结合H.264编码以提高编码效率。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/19/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB06/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1304,7 +1445,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
