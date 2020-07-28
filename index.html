@@ -145,6 +145,104 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Mr. Witty Blue">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mr. Witty Blue">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/" class="post-title-link" itemprop="url">【GAMES101学习笔记02】Rasterization</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-07-28 10:45:57 / 修改时间：13:51:37" itemprop="dateCreated datePublished" datetime="2020-07-28T10:45:57+08:00">2020-07-28</time>
+            </span>
+
+          
+            <span id="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/" class="post-meta-item leancloud_visitors" data-flag-title="【GAMES101学习笔记02】Rasterization" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="课程地址"><a href="#课程地址" class="headerlink" title="课程地址"></a>课程地址</h1><p><a href="https://www.bilibili.com/video/BV1X7411F744?p=5" target="_blank" rel="noopener">GAMES101</a></p>
+<h1 id="光栅化"><a href="#光栅化" class="headerlink" title="光栅化"></a>光栅化</h1><p>Pixel：picture element<br>由三个红蓝绿三个颜色组成</p>
+<h2 id="屏幕空间"><a href="#屏幕空间" class="headerlink" title="屏幕空间"></a>屏幕空间</h2><p><img src="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/ScreenSpace.png" alt="Screen Space"><br>像素的坐标如上图由（x,y）组成；<br>像素的坐标取值在（0,0）到（width-1,height-1）之间；<br>像素的中心在（x+0.5,y+0.5）;<br>屏幕覆盖范围（0,0）到（width,height）</p>
+<h2 id="视口变换"><a href="#视口变换" class="headerlink" title="视口变换"></a>视口变换</h2><p>Canonical Cube to Screen(投影得到的标准立方体到屏幕空间的变换)</p>
+<p>将xy平面[-1,1]<sup>2</sup>转换到[0,width]×[0,height]<br>转换矩阵如下：<br><img src="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/CanonicaltoScreen.png" alt="Canonical Cube to Screen"></p>
+<h2 id="Drawing-to-Raster-Device"><a href="#Drawing-to-Raster-Device" class="headerlink" title="Drawing to Raster Device"></a>Drawing to Raster Device</h2><p>为什么使用三角形：</p>
+<ul>
+<li>三角形是基础多边形；</li>
+<li>其他多边形可以拆成三角形；</li>
+<li>三角形一定是平面；</li>
+<li>可以很容易定义内部和外部；</li>
+<li>可以根据三个顶点的关系，在三角形内部进行插值，以得到渐变的值。</li>
+</ul>
+<p>判断像素与三角形的位置关系：</p>
+<ul>
+<li>采样：利用像素中心对屏幕空间进行采样，判断像素中心是否在三角形内<br><img src="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/sampling.png" alt="Sampling"></li>
+<li>inside(tri,x,y)函数：<br>三次叉乘，叉乘可以判断一个向量在另一个向量的左侧或右侧，（这里必须保证三角形的绕序）</li>
+<li>加速光栅化：<br>使用轴向包围盒（AABB）：<br>包围盒外的不需要进行判断，包围盒内的执行之前的循环。<br><img src="/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/BoundingBox.png" alt="Bounding Box"><br>Increment Triangle Traversal：<br>判断每一行的最左和最右，只判断里面的点。</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/26/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B001/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1312,110 +1410,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/06/27/zprepass/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Mr. Witty Blue">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Mr. Witty Blue">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/27/zprepass/" class="post-title-link" itemprop="url">一篇关于如何通过Direct3D 12实现z-prepass技术的分享</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-06-27 12:50:55" itemprop="dateCreated datePublished" datetime="2020-06-27T12:50:55+08:00">2020-06-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-06-28 21:09:59" itemprop="dateModified" datetime="2020-06-28T21:09:59+08:00">2020-06-28</time>
-              </span>
-
-          
-            <span id="/2020/06/27/zprepass/" class="post-meta-item leancloud_visitors" data-flag-title="一篇关于如何通过Direct3D 12实现z-prepass技术的分享" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="fa fa-comment-o"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2020/06/27/zprepass/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/06/27/zprepass/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Z-prepass的概念"><a href="#Z-prepass的概念" class="headerlink" title="Z-prepass的概念"></a>Z-prepass的概念</h1><p>在分享怎么实现之前，我们首先来看一下z-prepass到底是什么。<br>我们知道，在传统的图形管线中，被渲染的物体会在执行完像素着色器后执行深度检测，但这种方法有可能会在同一像素位置计算多个像素点，但实际显示在屏幕中的只有一个像素点，因此会产生大量的不必要的计算。<br>有一种优化策略是将深度检测的位置提前到像素着色器之前，即在执行完光栅化后便判断对应像素的深度，如果该像素的深度更小，则将其深度值写入深度缓冲区的对应位置，并对该像素进行像素着色过程。否则，便不会进行任何操作。这个过程被称为early-z。但是early-z依旧存在一些问题，比如当物体按照离屏幕由远及近的顺序渲染时，每一个物体的像素依旧会通过深度检测，因此并不会减少像素着色过程。<br>因此，z-prepass便是一种优化ealy-z的方法。z-prepass首先对需要被渲染的物体执行一遍渲染管线，但这个管线的像素着色器不执行任何操作，通过这种方法，借助深度检测机制，将离屏幕最近的物体的深度值写入深度缓冲区。然后执行第二遍渲染管线，这次的管线使用第一遍渲染产生的深度缓冲区，并利用early-z技术，使得只有与深度缓冲区中深度值相等的被渲染。  </p>
-<h1 id="技术要点"><a href="#技术要点" class="headerlink" title="技术要点"></a>技术要点</h1><p>z-prepass的所需要实现的技术要点如下：<br>1、 实现两个渲染管线，因此需要在Direct3D 12中创建两个pipeline state；<br>2、 需要创建两个CommandList以便于实现两个不同的渲染管线；<br>3、 需要实现两个像素着色器，其中一个用于z-prepass，另一个用于正常渲染；</p>
-<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h1><h2 id="创建两个pipeline-state"><a href="#创建两个pipeline-state" class="headerlink" title="创建两个pipeline state"></a>创建两个pipeline state</h2><p>用于z-prepass的渲染管线需要打开深度检测，其代码如下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc_zprepass &#x3D; &#123;&#125;;</span><br><span class="line">psoDesc_zprepass.DepthStencilState &#x3D; CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);</span><br></pre></td></tr></table></figure>
-
-<p>用于正常渲染的渲染管线也需要进行一些修改，其代码如下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc &#x3D; &#123;&#125;;</span><br><span class="line">psoDesc.DepthStencilState &#x3D; CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);</span><br><span class="line">psoDesc.DepthStencilState.DepthWriteMask &#x3D; D3D12_DEPTH_WRITE_MASK_ZERO;</span><br><span class="line">psoDesc.DepthStencilState.DepthFunc &#x3D; D3D12_COMPARISON_FUNC_EQUAL;</span><br></pre></td></tr></table></figure>
-<p>其中，用于正常渲染的管线需要禁用深度缓冲区的写入，即将<code>D3D12_GRAPHICS_PIPELINE_STATE_DESC</code>中的<code>DepthStencilState.DepthWriteMask</code>置为<code>D3D12_DEPTH_WRITE_MASK_ZERO</code>。此外，需要将深度检测的判定条件修改为若像素深度值与深度缓冲区的深度值相等则通过深度检测。因此需要将<code>DepthStencilState.DepthFunc</code>置为<code>D3D12_COMPARISON_FUNC_EQUAL</code>。</p>
-<p>当然，上述的代码并不完整，但是pipeline state的其他状态像往常一样设置即可。</p>
-<h2 id="CommandList中需要注意的问题"><a href="#CommandList中需要注意的问题" class="headerlink" title="CommandList中需要注意的问题"></a>CommandList中需要注意的问题</h2><p>由于需要两次渲染，因此每次渲染对应一个CommandList。<br>对于z-prepass的CommandList在绑定渲染目标时，可以只绑定深度缓冲区，其代码如下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">prepassCommandList-&gt;ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);</span><br><span class="line">prepassCommandList-&gt;OMSetRenderTargets(0, nullptr, true, &amp;dsvHandle);</span><br></pre></td></tr></table></figure>
-
-<p>对于正常渲染的CommandList正常地绑定渲染目标即可，但是要注意，不要清除深度缓冲区，其代码如下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mCommandList-&gt;OMSetRenderTargets(1, &amp;rtvHandle, true, &amp;dsvHandle);</span><br></pre></td></tr></table></figure>
-
-<h2 id="像素着色器中需要注意的问题"><a href="#像素着色器中需要注意的问题" class="headerlink" title="像素着色器中需要注意的问题"></a>像素着色器中需要注意的问题</h2><p>对于z-prepass的像素着色器，只需随意return一个float4的变量即可。<br>对于正常渲染的像素着色器而言，需要在像素着色器的声明之前添加[earlydepthstencil]属性，以表明GPU应该做early-z，虽然现在的大多数GPU默认使用early-z，但建议还是加上这个属性以防万一，其代码结构如下</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[earlydepthstencil]</span><br><span class="line">float4 PShader(VertexOut pin) : SV_Target</span><br><span class="line">&#123;</span><br><span class="line">	&#x2F;&#x2F; 你的程序逻辑 ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1485,7 +1479,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
