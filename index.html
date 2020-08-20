@@ -145,6 +145,187 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/08/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB08/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Mr. Witty Blue">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mr. Witty Blue">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB08/" class="post-title-link" itemprop="url">【文献阅读08】SLI Best Practices</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-20 10:56:48 / 修改时间：16:59:40" itemprop="dateCreated datePublished" datetime="2020-08-20T10:56:48+08:00">2020-08-20</time>
+            </span>
+
+          
+            <span id="/2020/08/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB08/" class="post-meta-item leancloud_visitors" data-flag-title="【文献阅读08】SLI Best Practices" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/08/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB08/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/08/20/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB08/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="说点什么"><a href="#说点什么" class="headerlink" title="说点什么"></a>说点什么</h1><p>最近比较忙，所以最近就没看GAMES101的系列课程了，应科研需要，近期读了一下SLI的技术文档，想将一些有用的内容进行分享一下</p>
+<h1 id="原文链接"><a href="#原文链接" class="headerlink" title="原文链接"></a>原文链接</h1><p><a href="https://developer.nvidia.com/sli-best-practices" target="_blank" rel="noopener">SLI Best Practices</a></p>
+<h1 id="SLI技术总结"><a href="#SLI技术总结" class="headerlink" title="SLI技术总结"></a>SLI技术总结</h1><p>SLI技术是什么：Scalable Link Interface，是一种通过多个NVIDIA的GPU划分负载，以提高渲染性能的多GPU配置。</p>
+<p>SLI提供的五种多GPU渲染的模式：</p>
+<ol>
+<li>Alternate Frame Rendering(AFR):多个GPU交替渲染帧，比如在两个GPU的场景下，GPU1渲染帧1，GPU2渲染帧2，然后GPU1再渲染帧3，以此类推。该方式只需要很少的GPU间通信,但由于GPU间性能差距、以及无法减少帧延迟（操作到显示的时间）、CPU的性能上限，因此该模式不容易进行扩展。此外，还有两种可解决的影响AFR扩展的问题：CPU-GPU间同步和帧间依赖产生的GPU同步。</li>
+<li>Split Frame Rendering(SFR):将一帧的画面划分为多个区域，每一个GPU负责一个区域，划分的区域会因为负载进行动态改变以保证负载均衡。该模式可能会产生重复的计算和GPU间的通信开销。</li>
+<li>AFR of SFR:该模式将GPU分组，组内的GPU采用SFR的模式，组与组之间采用AFR的模式，比如4个GPU，分成两个AFR组，每个组内的两个GPU以SFR的模式运行。</li>
+<li>Boost Performance Hybrid SLI Rendering:该模式类似于AFR模式，然而该模式是针对性能差距较大的GPU的场景的，比如两个GPU的场景下，GPU1的性能时GPU2的两倍，则GPU1渲染帧1和帧2，GPU2渲染帧3，然后GPU1渲染帧4和帧5，以此类推。</li>
+<li>SLIAA:该模式在保证原有的帧率的情况下，通过多个GPU在不同的位置进行采样，并最终进行合并，以提升抗锯齿的性能。</li>
+</ol>
+<h1 id="关于SLI的GPU内存的说明"><a href="#关于SLI的GPU内存的说明" class="headerlink" title="关于SLI的GPU内存的说明"></a>关于SLI的GPU内存的说明</h1><p>CPU中任何数据的更新都会被广播到所有GPU，每一个GPU都存放了一份数据的备份。（个人见解：存储的数据存在大量的冗余，不能充分利用每个GPU的显存）</p>
+<h1 id="AFR的帧间依赖"><a href="#AFR的帧间依赖" class="headerlink" title="AFR的帧间依赖"></a>AFR的帧间依赖</h1><h2 id="渲染到纹理"><a href="#渲染到纹理" class="headerlink" title="渲染到纹理"></a>渲染到纹理</h2><p>对于SwapChain而言，可以通过设置discard flag（不同DX版本的flag不同），告诉驱动back buffer中的数据不必保留（不必传输到其他的AFR组或GPU中）</p>
+<p>对于Render Target而言，没有这个flag，这是由于不知道应用在未来的帧中是否需要被写入Render Target的数据，因此，需要将该数据同步至所有的AFR组或GPU中。这导致GPU间大量的数据在传输，以及同步开销。比如：GPU2将暂停等待GPU1更新共享的Render Target。（该问题可以通过修改SLI的配置文件以阻止帧间的render target传输，或者通过在每一帧开会前调用Clear()函数清除Render Target使得驱动认为改数据不必保留并放弃该Render target的拷贝以解决）</p>
+<h2 id="D3D10及以后的Stream-Out-buffer"><a href="#D3D10及以后的Stream-Out-buffer" class="headerlink" title="D3D10及以后的Stream Out buffer"></a>D3D10及以后的Stream Out buffer</h2><p>和Render target类似，buffer也有类似的问题，但由于没有API机制以清除Buffer，因此只能通过将SLI配置文件添加到驱动程序中。</p>
+<h2 id="D3D11中的Unordered-Access-Views"><a href="#D3D11中的Unordered-Access-Views" class="headerlink" title="D3D11中的Unordered Access Views"></a>D3D11中的Unordered Access Views</h2><p>D3D11中引入的Unordered Access Views概念，可以将其绑定到管线进行随机读写访问。由于任何可能的修改都有可能导致帧间的依赖，因此在缺少配置文件的情况下，应用程序会通过引入适当的帧间同步操作来处理。ID3D11DeviceContext::ClearUnorderedAccessViewUint和ID3D11DeviceContext::ClearUnorderedAccessViewFloat这两个调用可以在每一帧前清除UAV buffer，因此可以去除这种帧间依赖以避免AFR组间的同步开销</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Mr. Witty Blue">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mr. Witty Blue">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/" class="post-title-link" itemprop="url">【GAMES101学习笔记03】Shading</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-07-30 14:30:44 / 修改时间：15:55:44" itemprop="dateCreated datePublished" datetime="2020-07-30T14:30:44+08:00">2020-07-30</time>
+            </span>
+
+          
+            <span id="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/" class="post-meta-item leancloud_visitors" data-flag-title="【GAMES101学习笔记03】Shading" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Blinn-Phong-Reflectance-Model"><a href="#Blinn-Phong-Reflectance-Model" class="headerlink" title="Blinn-Phong Reflectance Model"></a>Blinn-Phong Reflectance Model</h1><p><img src="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/Phong.png" alt="Phong"></p>
+<p>高光+漫反射+环境光照</p>
+<p>着色不考虑阴影（不考虑其他物体的存在）</p>
+<p>定义及假设：<br><img src="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/Reflect.png" alt="Reflect"></p>
+<p>漫反射（Diffuse Reflection）<br><img src="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/Diffuse.png" alt="Diffuse"><br>表面的亮度与表面和光线夹角间的关系</p>
+<p>由于能量守恒定律，因此光线随传播距离衰减<br><img src="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/fallof.png" alt="Fallof"></p>
+<p>因此如上述所示，漫反射的公式为<br><img src="/2020/07/30/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B003/Diffuse02.png" alt="Diffuse02"><br>其中k<sub>d</sub>表示光线的反射率</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/07/28/GAMES101%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B002/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1065,381 +1246,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Mr. Witty Blue">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Mr. Witty Blue">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/" class="post-title-link" itemprop="url">【文献阅读02】LiveRender、Kahawai等三篇云游戏相关论文的分析对比</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-06-30 17:15:09" itemprop="dateCreated datePublished" datetime="2020-06-30T17:15:09+08:00">2020-06-30</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-07-02 15:34:28" itemprop="dateModified" datetime="2020-07-02T15:34:28+08:00">2020-07-02</time>
-              </span>
-
-          
-            <span id="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/" class="post-meta-item leancloud_visitors" data-flag-title="【文献阅读02】LiveRender、Kahawai等三篇云游戏相关论文的分析对比" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="fa fa-comment-o"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="论文1：LiveRender-A-Cloud-Gaming-System-Based-on-Compressed-Graphics-Streaming"><a href="#论文1：LiveRender-A-Cloud-Gaming-System-Based-on-Compressed-Graphics-Streaming" class="headerlink" title="论文1：LiveRender: A Cloud Gaming System Based on Compressed Graphics Streaming"></a>论文1：LiveRender: <a href="https://ieeexplore.ieee.org/document/7166339" target="_blank" rel="noopener">A Cloud Gaming System Based on Compressed Graphics Streaming</a></h1><h2 id="论文要解决的问题"><a href="#论文要解决的问题" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h2><p>服务器端通过使用对图形流（Graphic Stream）进行压缩传输至客户端，并由客户端进行渲染，以解决传统基于流的远端渲染产生的高带宽和可扩展性差的问题</p>
-<h2 id="系统架构"><a href="#系统架构" class="headerlink" title="系统架构"></a>系统架构</h2><p>系统架构如下图所示，其中LiveRender需要处理三种数据：图形命令、图形数据（包括顶点、indices、法向量等）、纹理数据</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/LiveRenderArch.png" alt="LiveRender"></p>
-<h3 id="服务器侧"><a href="#服务器侧" class="headerlink" title="服务器侧"></a>服务器侧</h3><p>LiveRender在服务器侧实现一个<strong>代理库</strong>用于拦截图形命令和数据，并将其传输至客户端进行渲染。<strong>Cache管理器模块</strong>负责存储可以重用的图形命令、图形数据和纹理数据。<strong>几何压缩器模块</strong>用于对顶点和indices数据进行帧内和帧间压缩。</p>
-<h3 id="客户端侧"><a href="#客户端侧" class="headerlink" title="客户端侧"></a>客户端侧</h3><p>用于处理输入和图形渲染</p>
-<h3 id="客户端-服务器交互"><a href="#客户端-服务器交互" class="headerlink" title="客户端-服务器交互"></a>客户端-服务器交互</h3><p>本文对比了LiveRender和GamingAnyWhere两种云游戏系统因为交互导致的响应延迟。<br>对于GamingAnyWhere，SP过程包括处理输入、渲染图形和生成H.264视频流。CP过程表示解码和显示图像。<br>对于LiverRender，PS过程包括图形命令以及相关数据的打包分批发送，客户端收到第一个batch便开始渲染，PO表示传输过程、服务器处理过程和客户端处理过程的并行过程，PE表示从全部数据传输至客户端到渲染完所有batch。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/Interaction.png" alt="Interaction"></p>
-<h2 id="图形压缩和状态同步"><a href="#图形压缩和状态同步" class="headerlink" title="图形压缩和状态同步"></a>图形压缩和状态同步</h2><h3 id="帧内压缩"><a href="#帧内压缩" class="headerlink" title="帧内压缩"></a>帧内压缩</h3><p>基于二次误差度量实现帧内压缩，以简化图形的顶点数据</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/IntraCompress.png" alt="Intra-frame Compress"></p>
-<p>算法如下</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/alg1.png" alt="algorithm1"></p>
-<p>此外，本文针对帧内压缩提出两种策略：</p>
-<ol>
-<li>对每个模型只进行一次简化，如果模型后续发生变化，则重新通过indices进行映射。</li>
-<li>只对更新频繁的模型进行简化</li>
-</ol>
-<h3 id="帧间压缩"><a href="#帧间压缩" class="headerlink" title="帧间压缩"></a>帧间压缩</h3><p>由于连续帧之间的关联性，采用帧间压缩可以减少几何数据的冗余</p>
-<p>将帧分为原始帧（O帧）和衍生帧（D帧），将帧序列转换为O,D<sub>1</sub>,D<sub>2</sub>,…,D<sub>k</sub>,O…,这里的k是O帧的间隔。D帧只保留图形命令数据和纹理数据。几何数据通过相邻的两个O帧恢复出来。  实验表明k=1可以在开销和性能之间取得一个权衡。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/InterCompress.png" alt="Inter-frame Compress"></p>
-<h3 id="缓存机制（Caching）"><a href="#缓存机制（Caching）" class="headerlink" title="缓存机制（Caching）"></a>缓存机制（Caching）</h3><p>LiveRender缓存机制处理三种数据：图形命令，几何数据和纹理。</p>
-<h4 id="图形命令"><a href="#图形命令" class="headerlink" title="图形命令"></a>图形命令</h4><p>在较短的时间段内，渲染所使用的图形命令较为接近，部分图形命令会被频繁调用。<br>缓存过程：Server端维护一个hash表用于插入，查找和删除缓存。客户端使用数组维护缓存。当一个新的命令被拦截，服务器端首先计算这个命令对应的hash code，然后查找在hash表中查找此项，如果命中，则服务器端向客户端发送一个index，用于在客户端检索命令存放的位置。如果没有命中，则服务器端向客户端发送完整的命令。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/alg2.png" alt="algorithm2"></p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/Cache.png" alt="Cache"></p>
-<h4 id="图形数据和纹理"><a href="#图形数据和纹理" class="headerlink" title="图形数据和纹理"></a>图形数据和纹理</h4><p>对于图形数据：如果一个模型只有一小部分的数据被更新，则只传输这一部分数据即可。<br>对于纹理：纹理在游戏开始前预加载到客户端，后续新的纹理随着游戏的进行不断传输至客户端,注意每一个纹理只被传输一次。</p>
-<h4 id="延迟同步"><a href="#延迟同步" class="headerlink" title="延迟同步"></a>延迟同步</h4><p>在服务器侧，维护一个抽象设备模型，用于模拟客户端GPU所有的状态（包括光照，视角，转换矩阵等，个人认为这里的状态表述不明确，可以理解为GPU 常量缓冲区所存的数据），服务器侧检查状态值，只有被修改的数据将被传输到客户端以保证同步。</p>
-<h2 id="实验及分析"><a href="#实验及分析" class="headerlink" title="实验及分析"></a>实验及分析</h2><p>这里就不枚举实验了，直接上结论。<br>由于本系统的渲染过程不需要在服务器端运行，因此服务器端可同时服务更多的客户端，此外，由于对需要传输的数据进行了压缩和缓存，因此大幅地减少了带宽。</p>
-<p>以下是个人见解：<strong>本系统虽然有效地降低了带宽传输，但是由于游戏的主要部分“渲染”被放到了本地，这导致一部分在shader中需要进行复杂运算的游戏并不适用于本系统。此外，随着带宽的不断提高，服务器端压缩数据的过程便成为瓶颈</strong></p>
-<h1 id="论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload"><a href="#论文2：-Kahawai-High-Quality-Mobile-Gaming-Using-GPU-Offload" class="headerlink" title="论文2： Kahawai: High-Quality Mobile Gaming Using GPU Offload"></a>论文2： <a href="https://dl.acm.org/doi/10.1145/2594368.2601482" target="_blank" rel="noopener">Kahawai: High-Quality Mobile Gaming Using GPU Offload</a></h1><h2 id="论文要解决的问题-1"><a href="#论文要解决的问题-1" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h2><p>通过移动客户端和服务器端协同渲染以减少传输带宽和移动客户端能耗</p>
-<h2 id="系统架构-1"><a href="#系统架构-1" class="headerlink" title="系统架构"></a>系统架构</h2><p>Kahawai实现了两种协同渲染技术，分别是delta encoding和client-side I-frame rendering</p>
-<h3 id="delta-encoding"><a href="#delta-encoding" class="headerlink" title="delta encoding"></a>delta encoding</h3><p>移动客户端渲染低细节帧，服务器端分别渲染低细节帧和高细节帧，并将其差值通过H.264编码传输至移动客户端。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/DeltaArch.png" alt="delta encoding Architecture"></p>
-<h3 id="client-side-I-frame-rendering"><a href="#client-side-I-frame-rendering" class="headerlink" title="client-side I-frame rendering"></a>client-side I-frame rendering</h3><p>移动客户端渲染高分辨率的I帧；服务器端渲染所有帧，在进行H.264编码后丢弃所有的I帧，转换为placeholder，并传输至客户端；客户端接收到仅包含P帧的输出后，将I帧插入进去，并进行H.264解码得到最终的输出。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/IFrameArch.png" alt="client-side I-frame rendering Architecture"></p>
-<h2 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h2><h3 id="delta-encoding-1"><a href="#delta-encoding-1" class="headerlink" title="delta encoding"></a>delta encoding</h3><p>由于具有不同细节等级的输出具有相似的信息，因此编码高质量和低质量版本的帧的差值比编码高质量帧所需要的bit更少。虽然在某些情况下会出现反例，但大多数都符合这个情况。</p>
-<p>此外，delta encoding具有以下两种挑战：</p>
-<ol>
-<li>差值的压缩导致在最终恢复图像时产生黑点<br>&emsp;这是由于高细节帧的像素和低细节帧的像素之间的差值可以是正的也可以是负的，需要额外的符号位，因此为了简化，采用模运算作为一个简单的解决方案。下图是原文中的一个例子。</li>
-</ol>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eg1.png" alt="example1"></p>
-<p>&emsp;本文通过如下公式(1)将值转换为正值，并通过式(2)在客户端进行恢复。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq1.png" alt="equation1"><br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq2.png" alt="equation2"></p>
-<ol start="2">
-<li>被编码的差值无法精确表示高细节帧和低细节帧的差异<br>&emsp;其主要原因是有损压缩，压缩产生的误差与高清晰度和低清晰度帧的相似程度成反比。如果高清晰度和低清晰度的帧之间差距较大，相比于直接传输H.264编码的高细节帧需要更高的带宽，并会产生更大的误差。比如，下面两个例子：</li>
-</ol>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/fig4.png" alt="figure4"><br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/fig5.png" alt="figure5"></p>
-<p>其中图5的例子的差值相比于高清晰度帧来说更难压缩。</p>
-<h3 id="Client-side-I-frame-rendering"><a href="#Client-side-I-frame-rendering" class="headerlink" title="Client-side I-frame rendering"></a>Client-side I-frame rendering</h3><p>移动客户端能够渲染的I帧帧率越高，服务器端传输所需的带宽越低。</p>
-<p>在传统的H.264中如果I帧越多，由于I帧所含的信息量较高，因此所需的带宽越高。但是在Client-side I-frame rendering就不会存在这种问题，这是由于I帧在客户端渲染，并不会被服务器端传输。</p>
-<h2 id="Kahawai实现"><a href="#Kahawai实现" class="headerlink" title="Kahawai实现"></a>Kahawai实现</h2><p>基于开源游戏引擎idTech4和闭源游戏街霸4分别实现了该系统。</p>
-<p>该系统的实现主要存在以下3个挑战：</p>
-<ol>
-<li>支持确定性的图形输出；</li>
-<li>输入处理</li>
-<li>针对两种协同渲染技术实现编解码支持</li>
-</ol>
-<h3 id="确定性图形输出"><a href="#确定性图形输出" class="headerlink" title="确定性图形输出"></a>确定性图形输出</h3><p>对于delta encoding，客户端的低分辨率输出必须与服务器端的低分辨率输出相匹配。<br>对于Client-side I-frame rendering，客户端的I帧必须与服务器端的I帧相匹配。</p>
-<p>本文通过服务器端的游戏实例重播移动客户端的输入来达到输出的匹配。但由于在底层实现重播会产生较高的开销，这会导致用户体验变差。另一方面，将重播与游戏的内部逻辑纠缠在一起是不切实际的。</p>
-<p>Kahawai采取了一种折中的方案，即kahawai不需要完全重播所有的游戏执行，只要产生相同的画面即可。比如，服务器端的渲染不需要产生于客户端相同的文件写入或线程调度。</p>
-<p>渲染线程的代码如下：<br><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/code1.png" alt="code1"></p>
-<p>其中Frame()用于更新游戏状态（如光照，视角，转换矩阵等），UpdateScreen用于渲染并输出至屏幕。</p>
-<p>有三种不确定性因素会影响idTech引擎的渲染线程的输出：</p>
-<ol>
-<li>系统时间：Kahawai通过拦截渲染中的<em>GetSystemTime</em>调用以确保重播执行时使用相同的时间值。</li>
-<li>伪随机数生成器：正确的重播键盘和鼠标输入便可以使得伪随机数生成器的是确定的。</li>
-<li>游戏音乐：有些游戏的光照等依照于音乐的响度，Kahawai将音乐播放时对应的系统时间记录下来，依照该系统时间进行渲染。</li>
-</ol>
-<p>当服务器连接中断时，客户端将继续采取低分辨率的渲染继续执行，并执行以下步骤:</p>
-<ol>
-<li>游戏继续执行直到游戏被保存</li>
-<li>暂停执行</li>
-<li>将当前状态发送至服务器端</li>
-<li>当服务器确定已经完成恢复游戏状态后继续执行。</li>
-</ol>
-<h3 id="输入处理"><a href="#输入处理" class="headerlink" title="输入处理"></a>输入处理</h3><p>挑战：代码中，当<em>Frame</em>和<em>UpdateScreen</em>处理第N帧时，系统在缓存第N+1帧的事件。为保证服务器端和客户端同步，Kahawai必须确保当客户端再处理第N帧的输入时，服务器端页必须处理第N帧的输入。为保证这一点，客户端需要将渲染线程的事件戳输入和适当的帧号发送至服务器端，当接收到下一帧的输入之前，服务器将暂停。</p>
-<h3 id="pipeline的总结"><a href="#pipeline的总结" class="headerlink" title="pipeline的总结"></a>pipeline的总结</h3><p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/pipeline.png" alt="pipeline"></p>
-<p>图中不同的符号意思如下</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/sign.png" alt="sign"></p>
-<h3 id="编解码支持"><a href="#编解码支持" class="headerlink" title="编解码支持"></a>编解码支持</h3><p>对于client-side I-frame，本文使用x264在可预测的间隔生成I帧<br>，然后将编码视频中的I帧丢弃，将被压缩的P帧和placeholder传输至移动客户端。在移动客户端，使用帧捕捉来确定提取被渲染的I帧，并将其插入至视频流中，最终通过ffmpeg进行解码。</p>
-<h2 id="实验及分析-1"><a href="#实验及分析-1" class="headerlink" title="实验及分析"></a>实验及分析</h2><p>直接上结论：</p>
-<ol>
-<li>本文实现的两种系统在用户体验方面与thin-client策略类似；</li>
-<li>在相同的画面质量下，本文实现的两种系统所需的带宽更低，但随着画面质量的增加，本文实现系统与thin-client的差距会减小，这是由于delta encoding的细节变多</li>
-<li>Kahawai部署在在局域网或附近的CDN的服务器中性能最好</li>
-</ol>
-<p>以下是个人见解：<strong>delta encoding由于高清晰度和低清晰度帧的差值较大时表现不佳，因此该方法不能轻松适配于全部游戏。此外，该系统没有考虑负载均衡，这使得系统具有更进一步优化的空间。</strong></p>
-<h1 id="论文3：Layered-Coding-for-Mobile-Cloud-Gaming"><a href="#论文3：Layered-Coding-for-Mobile-Cloud-Gaming" class="headerlink" title="论文3：Layered Coding for Mobile Cloud Gaming"></a>论文3：<a href="https://dl.acm.org/doi/10.1145/2577387.2577395" target="_blank" rel="noopener">Layered Coding for Mobile Cloud Gaming</a></h1><h2 id="论文要解决的问题-2"><a href="#论文要解决的问题-2" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h2><p>提出一种分层编码的框架，以减少传输码率和带宽，并证明该框架在云游戏场景下优于H.264/AVC编码</p>
-<h2 id="系统架构-2"><a href="#系统架构-2" class="headerlink" title="系统架构"></a>系统架构</h2><p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/LayeredArch.png" alt="Layered Coding"></p>
-<p>服务器端分别渲染一个高质量I<sub>HQ</sub>和低质量（base-layer）I<sub>BL</sub>的画面,客户端只渲染与服务器端同样的低质量画面。高质量和低质量画面的差值被称为（enhencement layer）I<sub>EL</sub>。<br>关系如下：</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq3-1.png" alt="enhencement layer"></p>
-<p>I<sub>EL</sub>使用H.264编码进行转换，并传输至客户端，由客户端进行解码，并与低质量画面合并得到最终的高质量画面。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq3-2.png" alt="encoding and decoding"></p>
-<p>此外，为客户端能够渲染低画质的画面，需要将3D模型和渲染指令传输至客户端。</p>
-<h2 id="Base-layer-pipeline的设计"><a href="#Base-layer-pipeline的设计" class="headerlink" title="Base layer pipeline的设计"></a>Base layer pipeline的设计</h2><p>本文认为，在多边形的建模中，base layer的计算复杂度与多边形的数量（这里的数量可以理解为base layer中使用的多边形与高质量画面使用的多边形的比例）线性相关。</p>
-<p>通过衡量I<sub>EL</sub>的信息熵以估计被压缩的I<sub>EL</sub>的码率。实验表明，base layer中使用10%的多边形，I<sub>EL</sub>便会产生相比于I<sub>HQ</sub>50%的信息。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/exp3-1.png" alt="HEL"></p>
-<h2 id="光照算法"><a href="#光照算法" class="headerlink" title="光照算法"></a>光照算法</h2><h3 id="phong光照模型"><a href="#phong光照模型" class="headerlink" title="phong光照模型"></a>phong光照模型</h3><p>本文衡量了当客户端采用简化的光照模型时，enhencement layer所需包含的信息量。</p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/eq3-4.png" alt="phong"></p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/tab2.png" alt="Table 1"></p>
-<p><img src="/2020/06/30/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB02/exp3-2.png" alt="exp2"></p>
-<p>当I<sub>BL</sub>渲染完整的光照模型时,enhencement layer包含的信息量H<sub>EL</sub>为0,如果I<sub>BL</sub>不进行渲染时，则H<sub>EL</sub> = H<sub>HQ</sub></p>
-<h3 id="全局光照和纹理映射"><a href="#全局光照和纹理映射" class="headerlink" title="全局光照和纹理映射"></a>全局光照和纹理映射</h3><p>全局光照由于计算过于复杂，仅考虑放在服务器端。<br>纹理信息也仅考虑放在服务器端</p>
-<h2 id="实验及分析-2"><a href="#实验及分析-2" class="headerlink" title="实验及分析"></a>实验及分析</h2><p>直接上结论，分层的框架相比于thin-client模式，在相同的画面质量下，需要更少的码率。</p>
-<p>以下是个人见解<strong>本文分析了不同渲染操作所需计算量与画面包含信息量的关系，但论文中的表述存在部分问题，比如没有确切证据可以表明”画面的计算复杂度与多边形数量相关”，因为在顶点着色器后，片元着色器的计算负载通常更高</strong></p>
-<h1 id="对比"><a href="#对比" class="headerlink" title="对比"></a>对比</h1><p>三篇论文均考虑到云游戏场景中带宽的限制导致在thin client模式下游戏帧率主要取决于网络延迟，因此分别使用了不同的方法将渲染的部分计算量offload到client端。</p>
-<p>对于论文1而言，由于全部的渲染计算均在客户端进行，服务器端相当于充当传统渲染管线中的内存和CPU的角色，而客户端相当于充当GPU的角色，因此当采用全局光照等高计算负载的渲染逻辑时，该系统并不能很好的发挥其性能。</p>
-<p>对于论文2和论文3而言，他们分别将一部分渲染负载offload到client端，而另一部分在服务器端，通过在客户端合并的方式，将最终画面呈现给用户。其中论文2的所提出的两种模式并不能很好地保证负载均衡，而论文3中所提的负载的计算存在些许问题，需要改进。</p>
-<p>完成日期：2020-7-2 15:30</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wittyblue.github.io/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Mr. Witty Blue">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Mr. Witty Blue">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/" class="post-title-link" itemprop="url">【文献阅读01】 Visibility Rendering Order:Improving Energy Efficiency on Mobile GPUs through Frame Coherence</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2020-06-28 16:10:21 / 修改时间：18:58:27" itemprop="dateCreated datePublished" datetime="2020-06-28T16:10:21+08:00">2020-06-28</time>
-            </span>
-
-          
-            <span id="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/" class="post-meta-item leancloud_visitors" data-flag-title="【文献阅读01】 Visibility Rendering Order:Improving Energy Efficiency on Mobile GPUs through Frame Coherence" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="fa fa-comment-o"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="原文链接"><a href="#原文链接" class="headerlink" title="原文链接"></a>原文链接</h1><p><a href="https://ieeexplore.ieee.org/document/8440753/" target="_blank" rel="noopener">Visibility Rendering Order:Improving Energy Efficiency on Mobile GPUs through Frame Coherence</a></p>
-<h1 id="论文要解决的问题"><a href="#论文要解决的问题" class="headerlink" title="论文要解决的问题"></a>论文要解决的问题</h1><p>从硬件层面解决early-z在渲染物体顺序不是从前到后时的overdraw问题。</p>
-<h1 id="经典Graphic-Pipeline的回顾"><a href="#经典Graphic-Pipeline的回顾" class="headerlink" title="经典Graphic Pipeline的回顾"></a>经典Graphic Pipeline的回顾</h1><p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/GP1.png" alt="GP1"><br>传统的深度检测在片元着色阶段会产生不必要的计算量（overdraw）</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/earlyz.png" alt="earlyz"><br>如果将深度检测提前至片元着色之前（early-z），没有通过深度检测的片元，则不需要进行片元着色。但是只有当物体的渲染顺序为从前到后时，才能完全避免overdraw。但是，大多数情况下不会通过软件对物体进行排序。下图是在不同的渲染场景下，No Early-z和early-z的渲染效率的对比。其中Unordered表示物体没有进行排序，Ordered表示物体已经被排序。图中的Overshading表示平均每个像素需要渲染多少个片元（包括透明物体，注意early-z只优化不透明的物体）</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp1.png" alt="exp1"></p>
-<h1 id="Early-z常见的两种改进措施"><a href="#Early-z常见的两种改进措施" class="headerlink" title="Early-z常见的两种改进措施"></a>Early-z常见的两种改进措施</h1><ol>
-<li>z-prepass：<ul>
-<li>是一种软件技术</li>
-<li>方法：将一帧分成两次独立的渲染。第一次渲染只对不透明的objects的位置信息进行光栅化，且在Fragment Shader中不做任何处理（即所得最终结果为一帧每个pixel的深度值），并将其结果存入depth buffer。第二次渲染利用第一次渲染所得的depth buffer进行early depth检测，并将通过检测的fragment进行Fragment Shader。</li>
-<li>优点：只会渲染所有最终可见的不透明fragment所对应的像素，将overshading降到最小。</li>
-<li>缺点：需要进行两次Vertex Shader、光栅化和深度检测。</li>
-</ul>
-</li>
-<li>Deferred Rendering：<ul>
-<li>是一种硬件技术</li>
-<li>方法：将一帧分成tile（硬件中过程），并在early-depth之前增加hidden surface removal（HSR）阶段，在这个阶段中只对一个tile中的objects的位置信息进行光栅化，并将结果进行深度检测，最终写入depthbuffer中。在此之后进行正常的光栅化、early-depth和fragment Processing。如下图，deferred rendering有两种实现方式，图（a）为串行方式，这种方式会产生额外的时间开销，图（b）为并行方式。</li>
-</ul>
-</li>
-</ol>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/DR.png" alt="DR"></p>
-<h1 id="文献所提方法-Visibility-Rendering-Order"><a href="#文献所提方法-Visibility-Rendering-Order" class="headerlink" title="文献所提方法 Visibility Rendering Order"></a>文献所提方法 Visibility Rendering Order</h1><ul>
-<li>假设：下一帧objects的深度顺序（Visibility Order），与当前帧相差较小。（帧间的连续性，文章作者通过实验发现该情况发生的概率为99%）</li>
-</ul>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/VRO.png" alt="VRO"></p>
-<ul>
-<li><p>实现过程：</p>
-<ol>
-<li><p>根据objects的深度关系构建Visibility Graph。具体过程为，在对第N帧进行early-depth的过程中得到不同objects在同一像素位置的深度关系，将该深度关系作为一条边（edges）通过edges Inserter单元构建一个有向图，并将该信息以邻接表的形式存入Graph buffer中。</p>
-</li>
-<li><p>对Visibility Graph执行拓扑排序算法，生成一个关于objects的front-to-back的List，第N+1帧将按该顺序对objects进行渲染。</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/VisGa.png" alt="VisG"><br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/VisGb.png" alt="VisG"></p>
-<ul>
-<li>拓扑排序算法：该算法只能适用于有向无环图，然而应用场景中可能生成有环图（比如物体自遮蔽、两个objects相互遮蔽、两个物体以上相互遮蔽）<br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/Kahn.png" alt="Kahn"></li>
-<li>破除环路方法：<ul>
-<li>对于自遮蔽：不为其建立edge；</li>
-<li>对于两个objects相互遮蔽：仅记录其中的一组关系。比如object A与B相互遮蔽产生（A,B）和（B,A）那么只记录（A,B）；</li>
-<li>对于两个物体以上的相互遮蔽：正常生成Graph，在拓扑排序算法遇到环路时，选取入度最小的节点进行处理，然后正常处理后续步骤。经实验表明这种情况占13%。</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>Visibility Rendering Order的调整：</p>
-<ul>
-<li>对于前一帧有但当前帧没有的objects：从List中移除；</li>
-<li>对于前一帧没有但当前帧有的objects：放到List的末尾；</li>
-<li>对于半透明的objects（这种情况不能通过深度检测进行去除，而需要通过blend过程对这些objects的颜色进行合成，从后向前渲染）：在不透明的物体之后渲染，保证其相对位置顺序。</li>
-</ul>
-</li>
-</ol>
-</li>
-</ul>
-<h1 id="实现过程"><a href="#实现过程" class="headerlink" title="实现过程"></a>实现过程</h1><h2 id="Baseline-TBR-GPU"><a href="#Baseline-TBR-GPU" class="headerlink" title="Baseline TBR GPU"></a>Baseline TBR GPU</h2><p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/TBRGpu.png" alt="TBRGpu"></p>
-<p>Objects经过Geometry Pipeline（包括视角转换、clipping、面剔除等），传入Polygon List Builder单元，该单元负责将图元调度到不同的tile当中，并将该信息存入Parameter Buffer中。该buffer存在显存当中，由tile cache进行访问。随后根据调度信息，进行Raster Pipeline。</p>
-<p>该GPU有一个Vertex Processor和四个Fragment Processor。</p>
-<h2 id="Deferred-Rendering-TBR-GPU"><a href="#Deferred-Rendering-TBR-GPU" class="headerlink" title="Deferred Rendering TBR GPU"></a>Deferred Rendering TBR GPU</h2><p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/DRGpu.png" alt="DRGpu"></p>
-<p>Tile i执行正常的渲染操作。HSR阶段用于计算Tile i+1的z-buffer的最终状态。当渲染Tile i+1时，两个z-buffer进行交换。</p>
-<p>此外，Tile scheduler通过轮询的方式向两个光栅化器传输数据。在此期间，需要访问两次Tile Cache，因此平均数据传输时间与Baseline GPU和后续的VRO GPU相比较慢。</p>
-<h2 id="Visibility-Rendering-Order-TBR-GPU"><a href="#Visibility-Rendering-Order-TBR-GPU" class="headerlink" title="Visibility Rendering Order TBR GPU"></a>Visibility Rendering Order TBR GPU</h2><ul>
-<li><p>Edge Inserter: 负责插入边，并将其存入Graph buffer中。</p>
-</li>
-<li><p>Edges Filter：由于Early-Depth过程可能产生大量相同边，因此可以通过该模块对边进行一个初步过滤。</p>
-</li>
-<li><p>Visibility Sort unit：执行拓扑排序算法，其结果用于下一帧渲染的object的排序。</p>
-</li>
-</ul>
-<h2 id="VRO-TBR-GPU的实现细节"><a href="#VRO-TBR-GPU的实现细节" class="headerlink" title="VRO TBR GPU的实现细节"></a>VRO TBR GPU的实现细节</h2><ul>
-<li>Graph Buffer：由于Visibility Graph过于稀疏，因此Graph Buffer以邻接表的形式进行组织。</li>
-</ul>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/GraphBuffer.png" alt="GraphBuffer"></p>
-<ul>
-<li><p>Edge Inserter<br>将边（N<sub>src</sub>,N<sub>dst</sub>）插入Visibility Graph可分为以下三步:</p>
-<ol>
-<li><p>将节点N<sub>src</sub>对应的entry从Graph Buffer存入Adjacency-Reg。</p>
-</li>
-<li><p>判断是否该邻接表中是否有这条边的信息（这个过程使用一组相等比较器只需要一个时钟周期便可）</p>
-<ul>
-<li>如果已存在，则丢弃；</li>
-<li>否则，长度信息加1，并将这条边的信息加入该邻接表，并存入Graph Buffer。</li>
-</ul>
-</li>
-<li><p>将N<sub>dst</sub>对应的入度加1</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/EdgeInserter.png" alt="GraphBuffer"></p>
-</li>
-</ol>
-</li>
-<li><p>Visibility Sort Unit<br>初始化：将所有入度为0的节点对应的objects-id存入Roots Queue。</p>
-<ol>
-<li><p>将这个节点对应的邻接表读入AdjacencyList-Reg，并将对应的object-id通过Order-Queue存入Tile Scheduler</p>
-</li>
-<li><p>将该节点的Child节点的入度读入InD-Reg并减1，若此时入度为0，则将其存入Roots-Queue。</p>
-</li>
-<li><p>从Roots-Queue读入一个节点到AdjacencyList。</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/VSU.png" alt="VSU"></p>
-</li>
-</ol>
-</li>
-</ul>
-<h1 id="实验部分"><a href="#实验部分" class="headerlink" title="实验部分"></a>实验部分</h1><ul>
-<li>使用Teapot GPU模拟器</li>
-<li>使用McPAT框架计算能耗</li>
-</ul>
-<p>实验结果：</p>
-<p><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp2.png" alt="exp2"><br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp3.png" alt="exp3"><br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp4.png" alt="exp4"><br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp5.png" alt="exp5"><br><img src="/2020/06/28/%E6%96%87%E7%8C%AE%E9%98%85%E8%AF%BB/exp6.png" alt="exp6"></p>
-<p>对于图18而言，需要注意DR读取一个图元较慢的原因是Tile scheduler通过轮询的方式向两个光栅化器传输数据。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1509,7 +1315,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">14</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
